@@ -201,6 +201,9 @@ const puzzle = generatePuzzle({
 });
 
 // --- DOM ELEMENTS & GAME STATE ---
+// MODIFIED: Added splash screen elements
+const splashScreen = document.getElementById('splash-screen');
+const startButton = document.getElementById('start-button');
 const gameContainer = document.getElementById('game-container');
 const boardGrid = document.getElementById('board-grid');
 const dominoPalette = document.getElementById('domino-palette');
@@ -470,7 +473,6 @@ function initializeDominoes() {
         dominoEl.appendChild(half2);
         slotEl.appendChild(dominoEl);
         dominoPalette.appendChild(slotEl);
-        // MODIFIED: Added originalValues to the state object for robust rotation
         dominoElements[id] = {
             element: dominoEl,
             slotId: slotEl.id,
@@ -494,7 +496,6 @@ function addInteractionListeners(el) {
 }
 
 function onInteractionStart(e) {
-    // MODIFIED: Prevent emulated mouse events on touch devices to avoid double-firing
     if (e.type === 'touchstart') {
         e.preventDefault();
     }
@@ -578,31 +579,24 @@ function onInteractionEnd(e) {
     document.removeEventListener('touchend', onInteractionEnd);
 }
 
-// MODIFIED: Rewrote the rotation logic to be stateless and more robust.
 function rotateDomino(el) {
     if (!el) return;
     const id = el.dataset.id;
     const dominoState = dominoElements[id];
 
-    // Increment rotation
     dominoState.rotation = (dominoState.rotation + 90) % 360;
 
-    // Set currentValues based on the new rotation angle and the original values.
-    // This makes the logic stateless and avoids cascading errors.
     if (dominoState.rotation === 180 || dominoState.rotation === 270) {
         dominoState.currentValues = [...dominoState.originalValues].reverse();
     } else {
         dominoState.currentValues = [...dominoState.originalValues];
     }
 
-    // Update the domino's visual appearance (orientation and pips)
     updateDominoVisuals(el, dominoState);
 
-    // If the domino was already on the board, try to re-place it in its new orientation
     if (dominoState.placed) {
         const { r, c } = dominoState.position;
-        removeDominoFromBoard(id); // Clear old position from board state
-        // If it can't be placed in the new orientation, return it to the palette
+        removeDominoFromBoard(id); 
         if (!tryPlaceDomino(el, r, c)) {
             moveDominoToPalette(el);
         }
@@ -686,6 +680,8 @@ function moveDominoToPalette(dominoEl) {
 }
 
 // --- INITIALIZE GAME ---
+// MODIFIED: This now runs on page load to build the game in the background.
+// The game is revealed when the start button is clicked.
 document.addEventListener('DOMContentLoaded', () => {
     try {
         if (puzzle) {
@@ -696,7 +692,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch (error) {
         console.error("Failed to initialize game:", error);
+        gameContainer.classList.remove('hidden');
+        splashScreen.classList.add('hidden');
         gameContainer.innerHTML =
             '<p class="text-red-500 font-bold text-center">Error: Could not generate a puzzle.<br>Please refresh the page.</p>';
     }
+
+    // Event listener for the start button
+    startButton.addEventListener('click', () => {
+        splashScreen.classList.add('hidden');
+        gameContainer.classList.remove('hidden');
+        dominoPalette.classList.remove('hidden');
+    });
 });

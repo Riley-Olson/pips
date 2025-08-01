@@ -10,13 +10,18 @@
 </head>
 <body class="bg-gray-50 flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div id="game-container" class="relative mb-8">
+    <div id="splash-screen" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex flex-col items-center justify-center z-50">
+        <h1 class="text-5xl md:text-7xl font-bold text-white mb-8 text-center animate-pulse">Happy Girlfriend Day, Bunny!!!</h1>
+        <button id="start-button" class="px-8 py-3 bg-green-500 text-white font-bold rounded-lg shadow-lg hover:bg-green-600 transition-transform transform hover:scale-105">Start Playing</button>
+    </div>
+
+    <div id="game-container" class="relative mb-8 hidden">
         <div id="board-grid" class="grid-container"></div>
         <div id="domino-container" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
         <div id="region-overlay" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
     </div>
 
-    <div id="domino-palette" class="flex flex-wrap gap-4 p-4 bg-gray-200 rounded-lg shadow-inner justify-center items-center w-full max-w-xl" style="min-height: 140px;">
+    <div id="domino-palette" class="flex flex-wrap gap-4 p-4 bg-gray-200 rounded-lg shadow-inner justify-center items-center w-full max-w-xl hidden" style="min-height: 140px;">
     </div>
     
     <div id="message-box" class="fixed top-5 right-5 bg-white p-4 rounded-lg shadow-lg opacity-0 pointer-events-none max-w-xs text-center">
