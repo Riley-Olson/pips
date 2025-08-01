@@ -82,9 +82,9 @@ function generateShapeAndTiling(rows, cols, targetDominoes) {
                         const pR = nR + dr2, pC = nC + dc2;
                         const pCoord = `${pR},${pC}`;
                         if (pR >= 0 && pR < rows && pC >= 0 && pC < cols && !occupied.has(pCoord)) {
-                             const newDomino = [{ r: nR, c: nC }, { r: pR, c: pC }];
-                             const key = [nCoord, pCoord].sort().join('|');
-                             possibleNextTiling.push({ key, domino: newDomino });
+                            const newDomino = [{ r: nR, c: nC }, { r: pR, c: pC }];
+                            const key = [nCoord, pCoord].sort().join('|');
+                            possibleNextTiling.push({ key, domino: newDomino });
                         }
                     }
                 }
@@ -470,7 +470,16 @@ function initializeDominoes() {
         dominoEl.appendChild(half2);
         slotEl.appendChild(dominoEl);
         dominoPalette.appendChild(slotEl);
-        dominoElements[id] = { element: dominoEl, slotId: slotEl.id, currentValues: [...dominoValue], placed: false, position: null, rotation: 0 };
+        // MODIFIED: Added originalValues to the state object for robust rotation
+        dominoElements[id] = {
+            element: dominoEl,
+            slotId: slotEl.id,
+            originalValues: [...dominoValue],
+            currentValues: [...dominoValue],
+            placed: false,
+            position: null,
+            rotation: 0
+        };
         updateDominoVisuals(dominoEl, dominoElements[id]);
         addInteractionListeners(dominoEl);
     });
@@ -485,6 +494,11 @@ function addInteractionListeners(el) {
 }
 
 function onInteractionStart(e) {
+    // MODIFIED: Prevent emulated mouse events on touch devices to avoid double-firing
+    if (e.type === 'touchstart') {
+        e.preventDefault();
+    }
+    
     if (e.button === 2) return; 
     
     activeDomino = e.target.closest('.domino');
@@ -564,21 +578,37 @@ function onInteractionEnd(e) {
     document.removeEventListener('touchend', onInteractionEnd);
 }
 
+// MODIFIED: Rewrote the rotation logic to be stateless and more robust.
 function rotateDomino(el) {
     if (!el) return;
     const id = el.dataset.id;
     const dominoState = dominoElements[id];
-    const wasVertical = dominoState.rotation === 90 || dominoState.rotation === 270;
+
+    // Increment rotation
     dominoState.rotation = (dominoState.rotation + 90) % 360;
-    const isVertical = dominoState.rotation === 90 || dominoState.rotation === 270;
-    if (wasVertical && !isVertical) dominoState.currentValues.reverse();
+
+    // Set currentValues based on the new rotation angle and the original values.
+    // This makes the logic stateless and avoids cascading errors.
+    if (dominoState.rotation === 180 || dominoState.rotation === 270) {
+        dominoState.currentValues = [...dominoState.originalValues].reverse();
+    } else {
+        dominoState.currentValues = [...dominoState.originalValues];
+    }
+
+    // Update the domino's visual appearance (orientation and pips)
     updateDominoVisuals(el, dominoState);
+
+    // If the domino was already on the board, try to re-place it in its new orientation
     if (dominoState.placed) {
         const { r, c } = dominoState.position;
-        removeDominoFromBoard(id);
-        if (!tryPlaceDomino(el, r, c)) moveDominoToPalette(el);
+        removeDominoFromBoard(id); // Clear old position from board state
+        // If it can't be placed in the new orientation, return it to the palette
+        if (!tryPlaceDomino(el, r, c)) {
+            moveDominoToPalette(el);
+        }
     }
 }
+
 
 function updateDominoVisuals(el, state) {
     const isVertical = state.rotation === 90 || state.rotation === 270;
@@ -657,11 +687,16 @@ function moveDominoToPalette(dominoEl) {
 
 // --- INITIALIZE GAME ---
 document.addEventListener('DOMContentLoaded', () => {
-    if (puzzle) {
-        initializeBoard();
-        initializeDominoes();
-    } else {
-        gameContainer.innerHTML = 
-            '<p class="text-red-500 font-bold">Error: Could not generate a puzzle. Please refresh the page.</p>';
+    try {
+        if (puzzle) {
+            initializeBoard();
+            initializeDominoes();
+        } else {
+            throw new Error("Puzzle object is null.");
+        }
+    } catch (error) {
+        console.error("Failed to initialize game:", error);
+        gameContainer.innerHTML =
+            '<p class="text-red-500 font-bold text-center">Error: Could not generate a puzzle.<br>Please refresh the page.</p>';
     }
 });
